@@ -1,0 +1,69 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.61'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.3.60'
+
+    id "edu.wpi.first.GradleRIO" version "2020.3.2"
+}
+
+def ROBOT_MAIN_CLASS = "frc.team4069.robot.RobotKt"
+
+group 'frc.team4069'
+
+deploy {
+    targets {
+        roboRIO("roborio") {
+            team = 4069
+        }
+    }
+    artifacts {
+        frcJavaArtifact("frcJava") {
+            targets << "roborio"
+            debug = false
+        }
+        fileTreeArtifact("frcStaticFileDeploy") {
+            files = fileTree(dir: "src/main/deploy")
+            targets << "roborio"
+            directory = "/home/lvuser/deploy"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    implementation wpi.deps.wpilib()
+    nativeZip wpi.deps.wpilibJni(wpi.platforms.roborio)
+    nativeDesktopZip wpi.deps.wpilibJni(wpi.platforms.desktop)
+    simulation wpi.deps.sim.gui(wpi.platforms.desktop, false)
+
+    implementation wpi.deps.vendor.java()
+    nativeZip wpi.deps.vendor.jni(wpi.platforms.roborio)
+    nativeDesktopZip wpi.deps.vendor.jni(wpi.platforms.desktop)
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2"
+}
+
+jar {
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    manifest edu.wpi.first.gradlerio.GradleRIOPlugin.javaManifest(ROBOT_MAIN_CLASS)
+}
+
+wrapper {
+    gradleVersion = "6.0"
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+
+        freeCompilerArgs += ["-Xuse-experimental=kotlin.Experimental", "-XXLanguage:+InlineClasses"]
+    }
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
