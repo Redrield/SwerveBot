@@ -14,10 +14,12 @@ object Robot : TimedRobot() {
     const val MODULE_TURN_ID = 2
     const val MODULE_SPEED_ID = 1
 
-    val joystick = Joystick(0)
+    val joystick = XboxController(0)
 
-    val module = SwerveModule(CANSparkMax(MODULE_SPEED_ID, CANSparkMaxLowLevel.MotorType.kBrushless),
-        CANSparkMax(MODULE_TURN_ID, CANSparkMaxLowLevel.MotorType.kBrushless))
+    val module = SwerveModule(
+        CANSparkMax(MODULE_SPEED_ID, CANSparkMaxLowLevel.MotorType.kBrushless),
+        CANSparkMax(MODULE_TURN_ID, CANSparkMaxLowLevel.MotorType.kBrushless)
+    )
 
     val swerveDrive = SwerveDriveKinematics(
         Translation2d(0.2683, 0.2683),
@@ -25,21 +27,20 @@ object Robot : TimedRobot() {
         Translation2d(-0.2683, 0.3572)
     )
 
-    override fun teleopPeriodic() {
-        val x = -joystick.getRawAxis(1).deadband(0.15)
-        val y = -joystick.getRawAxis(0).deadband(0.15)
-        val turn = -joystick.getRawAxis(2).deadband(0.15)
-        if(x != 0.0 || y != 0.0 || turn != 0.0) {
-            val moduleStates = swerveDrive.toSwerveModuleStates(ChassisSpeeds(x, y, turn))
-            SwerveDriveKinematics.normalizeWheelSpeeds(moduleStates, 1.0)
-            module.update(moduleStates[0])
-        }
-        if(x == 0.0 && y == 0.0 && turn == 0.0) {
-            module.update(SwerveModuleState(0.0, module.currentDemand.angle))
-        }
+    override fun disabledPeriodic() {
+        module.update(SwerveModuleState(0.0, Rotation2d(0.0)))
     }
 
-    fun Double.deadband(threshold: Double) = if(this.absoluteValue < threshold) 0.0 else this
+    override fun teleopPeriodic() {
+        val x = -joystick.getY(GenericHID.Hand.kLeft).deadband(0.15)
+        val y = -joystick.getX(GenericHID.Hand.kLeft).deadband(0.15)
+        val turn = -joystick.getX(GenericHID.Hand.kRight).deadband(0.15)
+        val moduleStates = swerveDrive.toSwerveModuleStates(ChassisSpeeds(x, y, turn))
+        SwerveDriveKinematics.normalizeWheelSpeeds(moduleStates, 1.0)
+        module.update(moduleStates[0])
+    }
+
+    fun Double.deadband(threshold: Double) = if (this.absoluteValue < threshold) 0.0 else this
 }
 
 
